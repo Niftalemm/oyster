@@ -106,16 +106,29 @@ class FileMigrationProvider implements MigrationProvider {
     const migrations: Record<string, Migration> = {};
 
     for (const file of files) {
-      const pathParts = [directoryPath, file];
+      // const pathParts = [directoryPath, file];
 
       // This is the main addition we're making to the original code from
       // Kysely. On Windows, we need all absolute URLs to be "file URLs", so
       // we add this prefix.
-      if (os.platform() === 'win32') {
-        pathParts.unshift('file://');
-      }
+      // if (os.platform() === 'win32') {
+      //   pathParts.unshift('file://');
+      // }
 
-      const absolutePathToMigration = path.join(...pathParts);
+      // const absolutePathToMigration = path.join(...pathParts)
+
+      // Above code is commented out because it doesn't work on Windows.
+      // We need to use `path.resolve` instead of `path.join` to get the absolute path.;
+
+      let absolutePathToMigration = path.resolve(directoryPath, file);
+
+      // We need to replace the backslashes with forward slashes, because Windows
+      // doesn't support `import()` of absolute URLs which are not file URLs.
+      if (os.platform() === 'win32') {
+        absolutePathToMigration = new URL(
+          `file:///${absolutePathToMigration.replace(/\\/g, '/')}`
+        ).href;
+      }
 
       const migration = await import(absolutePathToMigration);
 
